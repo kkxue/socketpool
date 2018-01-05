@@ -8,6 +8,12 @@ import time
 import random
 
 from socketpool import util
+#for sshConnector
+from Exscript.protocols import SSH2
+from Exscript.protocols import Telnet
+from Exscript import Account
+
+
 
 class Connector(object):
     def matches(self, **match_options):
@@ -143,3 +149,82 @@ class TcpConnector(Connector):
 
     def recv(self, size=1024):
         return self._s.recv(size)
+
+
+class DeviceConnector(Connector):
+    def __init__(self, devType, connInfo, backend_mod, pool=None, **options):
+        self.DEV_TYPE = {
+            "huawei" : "vrp",
+            "cisco" : "ios",
+            "juniper" : "junos"
+        }
+        self.devType = devType
+        self.connType, self.host, self.username, self.password = connInfo.split("#")
+        self.backend_mod = backend_mod
+        self._pool = pool
+        self._conn = self.create_conn(self.connType, self.devType, self.host, self.username, self.password)
+        self._connected = True
+        # use a 'jiggle' value to make sure there is some
+        # randomization to expiry, to avoid many conns expiring very
+        # closely together.
+        self._life = time.time() - random.randint(0, 10)
+
+    def create_conn(self, connType, devType, host, username, password):
+        if connType == "ssh":
+            # print "[+] Logging Host : %s " % _Host
+            account = Account(username, password)
+            ssh = SSH2()
+            try:
+                # print "[+] Trying to Login in with username: %s password: %s " % (_Username,_Password)
+                ssh.connect(host)
+                ssh.set_driver(self.DEV_TYPE.get(devType, " "))
+                ssh.login(account)
+            except Exception, e:
+                # print "[-] Failed! ...", e
+                return None
+            # print "[+] Success ... username: %s and password %s is VALID! " % (_Username, _Password)
+            return ssh
+        if connType == "telnet":
+            telnet = Telnet(debug=1)
+            try:
+                telnet.connect(host)
+                telnet.get_username_prompt()
+                telnet.send(username)
+                telnet.get_password_prompt()
+                telnet.send(password)
+            except Exception, e:
+                return None
+            return telnet
+
+    def __del__(self):
+        self.release()
+
+    def matches(self, **match_options):
+        target_host = match_options.get('host')
+        target_port = match_options.get('port')
+        return target_host == self.host and target_port == self.port
+
+    def is_connected(self):
+        return self._connected
+
+    def handle_exception(self, exception):
+        print "error: %s" % str(exception)
+
+    def get_lifetime(self):
+        return self._life
+
+    def invalidate(self):
+        try:
+            self._conn.close()
+        except:
+            pass
+        finally:
+            self._connected = False
+            self._life = -1
+
+    def release(self):
+        if self._pool is not None:
+            if self._connected:
+                self._pool.release_connection(self)
+            else:
+                self._pool = None
