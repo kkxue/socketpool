@@ -205,7 +205,11 @@ class DeviceConnector(Connector):
         return target_host == self.host and target_port == self.port
 
     def is_connected(self):
-        return self._connected
+        if self._conn is not None:
+            if self._conn.sock is not None:
+                return util.is_connected(self._conn.sock)
+            return False
+        return False
 
     def handle_exception(self, exception):
         print "error: %s" % str(exception)
@@ -228,3 +232,21 @@ class DeviceConnector(Connector):
                 self._pool.release_connection(self)
             else:
                 self._pool = None
+
+    def execute(self, data):
+        if self._pool is not None:
+            if self._connected:
+                if self._conn:
+                    self._conn.execute(str(data))
+                    return self._conn.response
+                else:
+                    return "NoValidConnectionError"
+
+    def send(self, data):
+        if self._pool is not None:
+            if self._connected:
+                if self._conn:
+                    self._conn.send(data)
+                    return self._conn.response
+                else:
+                    return "NoValidConnectionError"

@@ -25,7 +25,7 @@ class ConnectionPool(object):
 
     :attr factory: Instance of socketpool.Connector. See
         socketpool.conn.TcpConnector for an example
-    :attr retry_max: int, default 3. Numbr of times to retry a
+    :attr retry_max: int, default 3. Number of times to retry a
         connection before raising the MaxTriesError exception.
     :attr max_lifetime: int, default 600. time in ms we keep a
         connection in the pool
