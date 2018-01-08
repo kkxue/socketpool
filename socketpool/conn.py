@@ -8,7 +8,7 @@ import time
 import random
 
 from socketpool import util
-#for sshConnector
+#for DeviceConnector
 from Exscript.protocols import SSH2
 from Exscript.protocols import Telnet
 from Exscript import Account
@@ -185,7 +185,7 @@ class DeviceConnector(Connector):
             # print "[+] Success ... username: %s and password %s is VALID! " % (_Username, _Password)
             return ssh
         if connType == "telnet":
-            telnet = Telnet(debug=1)
+            telnet = Telnet()
             try:
                 telnet.connect(host)
                 telnet.get_username_prompt()
