@@ -134,7 +134,6 @@ class ConnectionPool(object):
         # Do not set this in self.options so we don't keep a persistent
         # reference on the pool which would prevent garbage collection.
         options["pool"] = self
-
         found = None
         i = self.pool.qsize()
         tries = 0
